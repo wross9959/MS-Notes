@@ -1,47 +1,80 @@
-2.
+1
+```
 SigninLogs
-| where TimeGenerated > ago(72h)
-| where UserPrincipalName == "<user_upn>"
+| where TimeGenerated between (datetime({{AlertTime}}) - 1h) .. (datetime({{AlertTime}}) + 1h)
+| where UserPrincipalName has "{{AlertUser}}"
+| project TimeGenerated, UserPrincipalName, IPAddress, Location, DeviceDetail, OperatingSystem, Browser, UserAgent, AuthenticationDetails
+
+```
+
+4
+```
+SigninLogs
+| where UserPrincipalName has "{{AlertUser}}"
+| project TimeGenerated, AuthenticationDetails
+
+```
+
+5
+```
+SigninLogs
+| where UserPrincipalName has "{{AlertUser}}"
+| sort by TimeGenerated desc
+| project TimeGenerated, Location, IPAddress, DeviceDetail, UserAgent
+```
+
+6
+```
+SecurityEvent
+| where Account contains "{{AlertUser}}"
+| where EventID in (4728, 4729, 4732, 4733, 4740, 4756, 4757, 4768, 4769, 4771)
+| project TimeGenerated, EventID, Account, TargetUserName, SubjectUserName, Computer
+
+```
+
+---
+
+2
+```
+SigninLogs
+| where TimeGenerated >= ago(3d)
+| where UserPrincipalName == "{{user_upn}}"
 | project TimeGenerated, Location, UserAgent, AppDisplayName, DeviceDetail, IPAddress, ResultType
 | sort by TimeGenerated asc
 
-dataset = xdr_data
-| filter event_type == "AUTH"
-| filter actor_user == "<user_upn>"
-| fields event_timestamp, source_location_country, user_agent, application_name, source_ip, result
-| sort event_timestamp asc
+```
 
-4.
+4
+```
 SigninLogs
-| where UserPrincipalName == "<user_upn>"
+| where UserPrincipalName == "{{user_upn}}"
 | project TimeGenerated, AuthenticationDetails, TokenIssuerType, TokenStatus
 
-dataset = xdr_data
-| filter actor_user == "<user_upn>"
-| filter event_type == "AUTH"
-| filter token_type == "RefreshToken" or token_reuse == true
-| fields token_type, region, reuse_detected
+```
 
-5.
+5
+```
 SecurityEvent
-| where Account == "<user_upn>"
-| where EventID in (4720, 4728, 4732, 4756) // Group/privilege changes
+| where Account == "{{user_upn}}"
+| where EventID in (4720, 4728, 4732, 4756)  // Group or privilege changes
 
-dataset = audit_logs
-| filter actor_user == "<user_upn>"
-| filter activity_type in ("RoleAssigned", "RBACModified", "MFAChanged")
-| fields activity_type, target_user, modified_fields
+```
 
+6
+```
+SigninLogs
+| where UserPrincipalName == "{{user_upn}}"
+| project TimeGenerated, AuthenticationDetails, MFAResult, MFADetails
+
+```
 
 8
+```
 SigninLogs
-| where TimeGenerated between (ago(30d)..ago(2d))
-| where UserPrincipalName == "<user_upn>"
+| where TimeGenerated between (ago(30d) .. ago(2d))
+| where UserPrincipalName == "{{user_upn}}"
 | summarize by Location, IPAddress, DeviceDetail
 
-dataset = xdr_data
-| filter actor_user == "<user_upn>"
-| filter event_timestamp between now() - 30d and now() - 2d
-| summarize by source_ip, source_location_country, os_type, browser
+```
 
 
